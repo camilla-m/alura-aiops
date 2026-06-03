@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtualenvs
+venv/
+env/
+.venv/
+ENV/
+
+# Secrets
+.env
+*.key
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Dados e outputs temporários
+*.csv
+*.parquet
+*.pkl
+*.log
+scenario_data/generated/
+
+# Docker
+.docker/
+
+# Jupyter (caso usado para exploração)
+.ipynb_checkpoints/
