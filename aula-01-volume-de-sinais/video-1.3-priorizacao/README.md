@@ -26,3 +26,9 @@ video-1.3-priorizacao/
 ├── README.md              ← Este arquivo
 └── impact_scorer.py       ← Scoring de impacto baseado em topologia e contexto
 ```
+
+## ▶️ Como executar
+
+```bash
+python3 aula-01-volume-de-sinais/video-1.3-priorizacao/impact_scorer.py
+```

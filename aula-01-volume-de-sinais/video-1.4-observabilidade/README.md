@@ -26,5 +26,39 @@
 video-1.4-observabilidade/
 ├── README.md                       ← Este arquivo
 ├── observability_topology.py       ← Mapa de dependências e trace propagation
-└── docker-compose.yml              ← Stack de observabilidade local (Prometheus + Grafana + Loki)
+├── docker-compose.yml              ← Stack local: Prometheus + Grafana + Loki
+├── prometheus.yml                  ← Configuração de scrape do Prometheus
+└── promtail-config.yml             ← Agente de coleta de logs para o Loki
+```
+
+## ▶️ Como executar
+
+### 1. Subir a stack de observabilidade (Docker)
+
+```bash
+cd aula-01-volume-de-sinais/video-1.4-observabilidade
+docker compose up -d
+```
+
+Serviços disponíveis após subir:
+
+| Serviço | URL | Acesso |
+|---------|-----|--------|
+| **Grafana** | http://localhost:3000 | admin / aiops123 |
+| **Prometheus** | http://localhost:9090 | — |
+| **Node Exporter** | http://localhost:9100/metrics | — |
+| **Loki** | http://localhost:3100/ready | — |
+
+### 2. Rodar o simulador de topologia (Python)
+
+```bash
+# Da raiz do projeto:
+python3 aula-01-volume-de-sinais/video-1.4-observabilidade/observability_topology.py
+```
+
+### 3. Parar a stack
+
+```bash
+docker compose down          # para os containers
+docker compose down -v       # para + apaga os volumes (dados)
 ```

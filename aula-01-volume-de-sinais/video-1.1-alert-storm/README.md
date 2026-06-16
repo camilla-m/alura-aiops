@@ -27,3 +27,9 @@ video-1.1-alert-storm/
 ├── README.md            ← Este arquivo
 └── alert_storm_demo.py  ← Simulação de um alert storm em cascata
 ```
+
+## ▶️ Como executar
+
+```bash
+python3 aula-01-volume-de-sinais/video-1.1-alert-storm/alert_storm_demo.py
+```

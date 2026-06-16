@@ -35,6 +35,6 @@ video-1.5-hands-on/
 ## ▶️ Como executar
 
 ```bash
-cd video-1.5-hands-on/
-python incident_investigation.py
+# Da raiz do projeto:
+python3 aula-01-volume-de-sinais/video-1.5-hands-on/incident_investigation.py
 ```

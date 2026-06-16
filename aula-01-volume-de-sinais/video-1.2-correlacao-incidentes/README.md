@@ -27,3 +27,9 @@ video-1.2-correlacao-incidentes/
 ├── README.md                    ← Este arquivo
 └── event_correlator.py          ← Motor de correlação de eventos multimodal
 ```
+
+## ▶️ Como executar
+
+```bash
+python3 aula-01-volume-de-sinais/video-1.2-correlacao-incidentes/event_correlator.py
+```
