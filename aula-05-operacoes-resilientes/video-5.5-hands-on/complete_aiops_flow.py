@@ -18,30 +18,73 @@ Execute:
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
-# Importa módulos de todas as aulas
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from aula_01_volume_de_sinais.video_1_1_alert_storm.alert_storm_demo import simulate_alert_storm, analyze_alert_storm
-from aula_01_volume_de_sinais.video_1_2_correlacao_incidentes.event_correlator import EventCorrelator, Signal, SignalType
-from aula_01_volume_de_sinais.video_1_3_priorizacao.impact_scorer import calculate_impact_score
+def _load(module_name: str, file_path: Path):
+    """Carrega um módulo Python pelo caminho absoluto (contorna nomes com hífens)."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
-from aula_02_deteccao_de_anomalias.video_2_1_anomalias_infra.anomaly_detector import generate_cpu_series, detect_by_zscore
-from aula_02_deteccao_de_anomalias.video_2_2_baselines_dinamicos.dynamic_baseline import DynamicBaseline, generate_weekly_metric
 
-from aula_03_investigacao_assistida_ia.video_3_2_analise_logs.log_analyzer_ai import SAMPLE_LOGS, extract_patterns_local
-from aula_03_investigacao_assistida_ia.video_3_3_mudancas_incidentes.change_correlator import build_scenario, correlate_changes_with_incident
-from aula_03_investigacao_assistida_ia.video_3_4_contexto_distribuido.topology_context import TOPOLOGY, topology_to_prompt_context
+# Raiz do projeto (2 níveis acima deste arquivo)
+_ROOT = Path(__file__).parent.parent.parent
 
-from aula_04_automacao_e_resposta.video_4_2_runbooks.runbook_executor import create_auth_service_recovery_runbook
-from aula_04_automacao_e_resposta.video_4_4_guardrails.guardrail_engine import GuardrailEngine, AutomationRequest
+# ── Aula 1 ────────────────────────────────────────────────────────────────
+_a1_storm   = _load("alert_storm_demo",  _ROOT / "aula-01-volume-de-sinais" / "video-1.1-alert-storm"            / "alert_storm_demo.py")
+_a1_corr    = _load("event_correlator",  _ROOT / "aula-01-volume-de-sinais" / "video-1.2-correlacao-incidentes"  / "event_correlator.py")
+_a1_score   = _load("impact_scorer",     _ROOT / "aula-01-volume-de-sinais" / "video-1.3-priorizacao"            / "impact_scorer.py")
 
-from aula_05_operacoes_resilientes.video_5_2_fluxos_integrados.unified_pipeline import UnifiedOperationsPipeline
-from aula_05_operacoes_resilientes.video_5_3_ia_workflow.ai_documentation import IncidentData, generate_postmortem_with_ai_prompt
+simulate_alert_storm  = _a1_storm.simulate_alert_storm
+analyze_alert_storm   = _a1_storm.analyze_alert_storm
+EventCorrelator       = _a1_corr.EventCorrelator
+Signal                = _a1_corr.Signal
+SignalType            = _a1_corr.SignalType
+calculate_impact_score = _a1_score.calculate_impact_score
+
+# ── Aula 2 ────────────────────────────────────────────────────────────────
+_a2_anom    = _load("anomaly_detector",  _ROOT / "aula-02-deteccao-de-anomalias" / "video-2.1-anomalias-infra"      / "anomaly_detector.py")
+_a2_base    = _load("dynamic_baseline",  _ROOT / "aula-02-deteccao-de-anomalias" / "video-2.2-baselines-dinamicos"  / "dynamic_baseline.py")
+
+generate_cpu_series   = _a2_anom.generate_cpu_series
+detect_by_zscore      = _a2_anom.detect_by_zscore
+DynamicBaseline       = _a2_base.DynamicBaseline
+generate_weekly_metric = _a2_base.generate_weekly_metric
+
+# ── Aula 3 ────────────────────────────────────────────────────────────────
+_a3_log     = _load("log_analyzer_ai",   _ROOT / "aula-03-investigacao-assistida-ia" / "video-3.2-analise-logs"         / "log_analyzer_ai.py")
+_a3_change  = _load("change_correlator", _ROOT / "aula-03-investigacao-assistida-ia" / "video-3.3-mudancas-incidentes"  / "change_correlator.py")
+_a3_topo    = _load("topology_context",  _ROOT / "aula-03-investigacao-assistida-ia" / "video-3.4-contexto-distribuido" / "topology_context.py")
+
+SAMPLE_LOGS                    = _a3_log.SAMPLE_LOGS
+extract_patterns_local         = _a3_log.extract_patterns_local
+build_scenario                 = _a3_change.build_scenario
+correlate_changes_with_incident = _a3_change.correlate_changes_with_incident
+TOPOLOGY                       = _a3_topo.TOPOLOGY
+topology_to_prompt_context     = _a3_topo.topology_to_prompt_context
+
+# ── Aula 4 ────────────────────────────────────────────────────────────────
+_a4_run     = _load("runbook_executor",  _ROOT / "aula-04-automacao-e-resposta" / "video-4.2-runbooks"   / "runbook_executor.py")
+_a4_guard   = _load("guardrail_engine",  _ROOT / "aula-04-automacao-e-resposta" / "video-4.4-guardrails" / "guardrail_engine.py")
+
+create_auth_service_recovery_runbook = _a4_run.create_auth_service_recovery_runbook
+GuardrailEngine    = _a4_guard.GuardrailEngine
+AutomationRequest  = _a4_guard.AutomationRequest
+
+# ── Aula 5 ────────────────────────────────────────────────────────────────
+_a5_pipe    = _load("unified_pipeline",  _ROOT / "aula-05-operacoes-resilientes" / "video-5.2-fluxos-integrados" / "unified_pipeline.py")
+_a5_doc     = _load("ai_documentation",  _ROOT / "aula-05-operacoes-resilientes" / "video-5.3-ia-workflow"       / "ai_documentation.py")
+
+UnifiedOperationsPipeline       = _a5_pipe.UnifiedOperationsPipeline
+IncidentData                    = _a5_doc.IncidentData
+generate_postmortem_with_ai_prompt = _a5_doc.generate_postmortem_with_ai_prompt
 
 
 def section(title: str) -> None:
