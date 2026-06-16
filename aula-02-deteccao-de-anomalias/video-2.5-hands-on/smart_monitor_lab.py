@@ -18,30 +18,42 @@ Execute:
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from video_2_1_anomalias_infra.anomaly_detector import (
-    generate_cpu_series,
-    detect_by_static_threshold,
-    detect_by_zscore,
-)
-from video_2_2_baselines_dinamicos.dynamic_baseline import (
-    DynamicBaseline,
-    report_baseline,
-)
-from video_2_3_series_temporais.time_series_analysis import (
-    generate_disk_usage_series,
-    forecast_metric,
-    print_forecast_report,
-)
-from video_2_4_reducao_alert_fatigue.alert_fatigue_analyzer import (
-    generate_alert_history,
-    analyze_alert_quality,
-    print_alert_health_report,
-)
+def _load(module_name: str, file_path: Path):
+    """Carrega um módulo Python pelo caminho absoluto (contorna nomes com hífens)."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_BASE = Path(__file__).parent.parent
+
+_anomaly_mod  = _load("anomaly_detector",       _BASE / "video-2.1-anomalias-infra"          / "anomaly_detector.py")
+_baseline_mod = _load("dynamic_baseline",        _BASE / "video-2.2-baselines-dinamicos"      / "dynamic_baseline.py")
+_ts_mod       = _load("time_series_analysis",    _BASE / "video-2.3-series-temporais"         / "time_series_analysis.py")
+_fatigue_mod  = _load("alert_fatigue_analyzer",  _BASE / "video-2.4-reducao-alert-fatigue"    / "alert_fatigue_analyzer.py")
+
+generate_cpu_series        = _anomaly_mod.generate_cpu_series
+detect_by_static_threshold = _anomaly_mod.detect_by_static_threshold
+detect_by_zscore           = _anomaly_mod.detect_by_zscore
+
+DynamicBaseline       = _baseline_mod.DynamicBaseline
+report_baseline       = _baseline_mod.report_baseline
+generate_weekly_metric = _baseline_mod.generate_weekly_metric
+
+generate_disk_usage_series = _ts_mod.generate_disk_usage_series
+forecast_metric            = _ts_mod.forecast_metric
+print_forecast_report      = _ts_mod.print_forecast_report
+
+generate_alert_history    = _fatigue_mod.generate_alert_history
+analyze_alert_quality     = _fatigue_mod.analyze_alert_quality
+print_alert_health_report = _fatigue_mod.print_alert_health_report
 
 
 def lab_step(step: int, title: str) -> None:
@@ -81,7 +93,6 @@ def run_lab() -> None:
     # ------------------------------------------------------------------
     lab_step(2, "Treinando baseline dinâmico com sazonalidade semanal")
 
-    from video_2_2_baselines_dinamicos.dynamic_baseline import generate_weekly_metric
     rps_series = generate_weekly_metric(days=14)
     baseline = DynamicBaseline(seasonality_period=288, confidence_multiplier=2.5)
     baseline_results = baseline.fit_and_detect(rps_series)
