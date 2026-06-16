@@ -140,7 +140,7 @@ def forecast_metric(
     return TrendForecast(
         metric_name=metric_name,
         current_value=round(current, 1),
-        slope_per_day=round(slope * 24, 4),  # slope por hora → por dia
+        slope_per_day=round(slope, 4),           # slope já está em %/dia (x em dias)
         r_squared=round(r_squared, 3),
         days_to_threshold=round(days_to_threshold, 1),
         forecast_30d=round(forecast_30d, 1),
@@ -156,7 +156,7 @@ def print_forecast_report(forecast: TrendForecast) -> None:
     print("=" * 65)
     print(f"""
   Valor atual          : {forecast.current_value}%
-  Crescimento diário   : +{forecast.slope_per_day:.2f}% / hora-dia
+  Crescimento diário   : +{forecast.slope_per_day:.2f}% / dia
   Qualidade do modelo  : R² = {forecast.r_squared:.3f} ({'bom' if forecast.r_squared > 0.8 else 'médio'})
 
   Limite crítico       : {forecast.threshold}%
