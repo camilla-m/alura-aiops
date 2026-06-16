@@ -20,21 +20,37 @@ Execute:
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from video_3_2_analise_logs.log_analyzer_ai import (
-    SAMPLE_LOGS, extract_patterns_local, chunk_logs, build_log_analysis_prompt,
-)
-from video_3_3_mudancas_incidentes.change_correlator import (
-    build_scenario, correlate_changes_with_incident,
-)
-from video_3_4_contexto_distribuido.topology_context import (
-    TOPOLOGY, topology_to_prompt_context,
-)
+def _load(module_name: str, file_path: Path):
+    """Carrega um módulo Python pelo caminho absoluto (contorna nomes com hífens)."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_BASE = Path(__file__).parent.parent
+
+_log_mod      = _load("log_analyzer_ai",         _BASE / "video-3.2-analise-logs"          / "log_analyzer_ai.py")
+_change_mod   = _load("change_correlator",        _BASE / "video-3.3-mudancas-incidentes"   / "change_correlator.py")
+_topology_mod = _load("topology_context",         _BASE / "video-3.4-contexto-distribuido"  / "topology_context.py")
+
+SAMPLE_LOGS                  = _log_mod.SAMPLE_LOGS
+extract_patterns_local       = _log_mod.extract_patterns_local
+chunk_logs                   = _log_mod.chunk_logs
+build_log_analysis_prompt    = _log_mod.build_log_analysis_prompt
+
+build_scenario               = _change_mod.build_scenario
+correlate_changes_with_incident = _change_mod.correlate_changes_with_incident
+
+TOPOLOGY                     = _topology_mod.TOPOLOGY
+topology_to_prompt_context   = _topology_mod.topology_to_prompt_context
 
 
 def build_unified_investigation_prompt(
