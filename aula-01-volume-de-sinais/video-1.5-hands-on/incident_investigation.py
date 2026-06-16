@@ -19,6 +19,7 @@ Execute:
   python incident_investigation.py
 """
 
+import importlib.util
 import json
 import sys
 import time
@@ -26,16 +27,29 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-# Importa os módulos dos vídeos anteriores
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from video_1_1_alert_storm.alert_storm_demo import Alert, Severity
-from video_1_2_correlacao_incidentes.event_correlator import (
-    EventCorrelator, Signal, SignalType,
-)
-from video_1_3_priorizacao.impact_scorer import (
-    calculate_impact_score, print_triage_report,
-)
+def _load(module_name: str, file_path: Path):
+    """Carrega um módulo Python pelo caminho absoluto (contorna nomes com hífens)."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_BASE = Path(__file__).parent.parent
+
+_alert_storm    = _load("alert_storm_demo",  _BASE / "video-1.1-alert-storm"    / "alert_storm_demo.py")
+_correlator_mod = _load("event_correlator",  _BASE / "video-1.2-correlacao-incidentes" / "event_correlator.py")
+_scorer_mod     = _load("impact_scorer",     _BASE / "video-1.3-priorizacao"    / "impact_scorer.py")
+
+Alert      = _alert_storm.Alert
+Severity   = _alert_storm.Severity
+EventCorrelator = _correlator_mod.EventCorrelator
+Signal          = _correlator_mod.Signal
+SignalType      = _correlator_mod.SignalType
+calculate_impact_score = _scorer_mod.calculate_impact_score
+print_triage_report    = _scorer_mod.print_triage_report
 
 
 # ---------------------------------------------------------------------------
