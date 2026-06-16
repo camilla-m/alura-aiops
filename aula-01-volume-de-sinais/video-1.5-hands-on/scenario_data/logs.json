@@ -1,0 +1,120 @@
+[
+  {
+    "timestamp": "2024-06-03T09:02:00Z",
+    "level": "FATAL",
+    "service": "database",
+    "trace_id": "t-db-001",
+    "message": "FATAL: max_connections=100 reached",
+    "context": {
+      "connections_active": 100,
+      "connections_max": 100,
+      "waiting_queries": 47
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:10Z",
+    "level": "ERROR",
+    "service": "cache",
+    "trace_id": "t-db-001",
+    "message": "ERROR: Redis fallback to DB failed",
+    "context": {
+      "fallback_target": "postgresql-primary",
+      "reason": "connection_pool_exhausted"
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:15Z",
+    "level": "ERROR",
+    "service": "auth-service",
+    "trace_id": "t-db-001",
+    "message": "ERROR: DB auth query timeout after 30s",
+    "context": {
+      "query": "SELECT * FROM users WHERE token = ?",
+      "timeout_ms": 30000,
+      "retries": 3
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:20Z",
+    "level": "ERROR",
+    "service": "api-gateway",
+    "trace_id": "t-db-001",
+    "message": "ERROR: upstream auth-service 503",
+    "context": {
+      "upstream": "auth-service",
+      "status_code": 503,
+      "path": "/api/v1/users/me"
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:25Z",
+    "level": "WARN",
+    "service": "frontend",
+    "trace_id": null,
+    "message": "WARN: Returning 503 to end users",
+    "context": {
+      "affected_endpoints": ["/checkout", "/profile", "/orders"],
+      "error_page": "503_maintenance.html"
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:28Z",
+    "level": "ERROR",
+    "service": "payment-service",
+    "trace_id": null,
+    "message": "ERROR: Cannot process payment - auth unavailable",
+    "context": {
+      "transaction_id": "txn-9f8a3c",
+      "amount_brl": 299.90,
+      "customer_id": "usr-12345"
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:02:30Z",
+    "level": "ERROR",
+    "service": "cart-service",
+    "trace_id": null,
+    "message": "ERROR: Cart checkout blocked by auth failure",
+    "context": {
+      "cart_id": "cart-88b4f1",
+      "items": 3,
+      "blocked_reason": "auth_service_unavailable"
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:05:00Z",
+    "level": "INFO",
+    "service": "analytics",
+    "trace_id": null,
+    "message": "INFO: Schema migration completed — analytics v2.1",
+    "context": {
+      "migration_id": "m-2024-0603-001",
+      "tables_altered": 4,
+      "duration_sec": 38
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:05:02Z",
+    "level": "WARN",
+    "service": "analytics",
+    "trace_id": null,
+    "message": "WARN: analytics job slow (expected post-migration)",
+    "context": {
+      "job": "daily_revenue_aggregation",
+      "expected_duration_sec": 60,
+      "current_duration_sec": 180
+    }
+  },
+  {
+    "timestamp": "2024-06-03T09:07:00Z",
+    "level": "INFO",
+    "service": "notification-service",
+    "trace_id": null,
+    "message": "INFO: Email batch job completed successfully",
+    "context": {
+      "batch_id": "batch-2024-0603-morning",
+      "emails_sent": 1247,
+      "duration_sec": 42
+    }
+  }
+]

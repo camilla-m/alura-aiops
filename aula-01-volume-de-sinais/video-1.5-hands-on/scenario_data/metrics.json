@@ -1,0 +1,122 @@
+[
+  {
+    "timestamp": "2024-06-03T09:02:05Z",
+    "service": "database",
+    "metric": "connections_active",
+    "value": 100,
+    "unit": "connections",
+    "labels": { "env": "prod", "instance": "postgresql-primary" },
+    "threshold": 90,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:05Z",
+    "service": "database",
+    "metric": "query_latency_p99_ms",
+    "value": 31200,
+    "unit": "milliseconds",
+    "labels": { "env": "prod", "instance": "postgresql-primary" },
+    "threshold": 1000,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:18Z",
+    "service": "auth-service",
+    "metric": "error_rate",
+    "value": 0.97,
+    "unit": "ratio",
+    "labels": { "env": "prod", "instance": "auth-service-pod-1" },
+    "threshold": 0.05,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:18Z",
+    "service": "auth-service",
+    "metric": "latency_p99_ms",
+    "value": 8500,
+    "unit": "milliseconds",
+    "labels": { "env": "prod", "instance": "auth-service-pod-1" },
+    "threshold": 500,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:22Z",
+    "service": "api-gateway",
+    "metric": "latency_p99_ms",
+    "value": 12000,
+    "unit": "milliseconds",
+    "labels": { "env": "prod", "instance": "api-gateway-pod-1" },
+    "threshold": 1000,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:22Z",
+    "service": "api-gateway",
+    "metric": "error_rate",
+    "value": 0.42,
+    "unit": "ratio",
+    "labels": { "env": "prod", "instance": "api-gateway-pod-1" },
+    "threshold": 0.05,
+    "status": "HIGH"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:26Z",
+    "service": "payment-service",
+    "metric": "error_rate",
+    "value": 1.0,
+    "unit": "ratio",
+    "labels": { "env": "prod", "instance": "payment-service-pod-1" },
+    "threshold": 0.01,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:26Z",
+    "service": "payment-service",
+    "metric": "transactions_per_minute",
+    "value": 0,
+    "unit": "tpm",
+    "labels": { "env": "prod", "instance": "payment-service-pod-1" },
+    "threshold": 50,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:02:30Z",
+    "service": "cart-service",
+    "metric": "checkout_success_rate",
+    "value": 0.0,
+    "unit": "ratio",
+    "labels": { "env": "prod", "instance": "cart-service-pod-1" },
+    "threshold": 0.95,
+    "status": "CRITICAL"
+  },
+  {
+    "timestamp": "2024-06-03T09:05:05Z",
+    "service": "analytics",
+    "metric": "job_duration_seconds",
+    "value": 450,
+    "unit": "seconds",
+    "labels": { "env": "prod", "job": "daily_revenue_aggregation" },
+    "threshold": 120,
+    "status": "WARN"
+  },
+  {
+    "timestamp": "2024-06-03T09:07:05Z",
+    "service": "notification-service",
+    "metric": "emails_sent_total",
+    "value": 1247,
+    "unit": "count",
+    "labels": { "env": "prod", "batch": "morning" },
+    "threshold": null,
+    "status": "OK"
+  },
+  {
+    "timestamp": "2024-06-03T09:07:05Z",
+    "service": "notification-service",
+    "metric": "error_rate",
+    "value": 0.001,
+    "unit": "ratio",
+    "labels": { "env": "prod", "instance": "notification-service-pod-1" },
+    "threshold": 0.05,
+    "status": "OK"
+  }
+]
