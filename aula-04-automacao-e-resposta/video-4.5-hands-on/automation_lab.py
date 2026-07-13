@@ -17,15 +17,24 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Diretórios irmãos têm hífens no nome (ex: video-4.1-respostas-automatizadas),
+# o que os torna inválidos como pacotes Python. Adicionamos cada um ao sys.path
+# individualmente para importar os módulos diretamente pelo nome do arquivo.
+_base = Path(__file__).parent.parent
+for _folder in (
+    "video-4.1-respostas-automatizadas",
+    "video-4.2-runbooks",
+    "video-4.4-guardrails",
+):
+    sys.path.insert(0, str(_base / _folder))
 
-from video_4_1_respostas_automatizadas.self_healing_engine import (
+from self_healing_engine import (
     SelfHealingEngine, AlertTrigger,
 )
-from video_4_2_runbooks.runbook_executor import (
+from runbook_executor import (
     create_auth_service_recovery_runbook,
 )
-from video_4_4_guardrails.guardrail_engine import (
+from guardrail_engine import (
     GuardrailEngine, AutomationRequest,
 )
 
@@ -65,7 +74,7 @@ def run_lab() -> None:
     print(f"{'─'*65}")
     engine = SelfHealingEngine(human_in_the_loop=False)  # guardrails separados
     # Diagnóstico apenas (sem executar)
-    from video_4_1_respostas_automatizadas.self_healing_engine import REMEDIATION_RULES
+    from self_healing_engine import REMEDIATION_RULES
     planned_action = None
     for condition, service, action in REMEDIATION_RULES:
         if condition in trigger.condition and service == trigger.service:

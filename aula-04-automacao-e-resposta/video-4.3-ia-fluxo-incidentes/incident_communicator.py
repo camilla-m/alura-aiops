@@ -187,12 +187,12 @@ def build_incident_demo() -> IncidentReport:
     t0 = datetime(2024, 6, 3, 9, 2, 0)
     timeline = IncidentTimeline()
     timeline.add(t0,                    "Primeiros alertas: auth-service error_rate > 80%")
-    timeline.add(t0 + timedelta(min=2), "War room criada, time acionado")
-    timeline.add(t0 + timedelta(min=5), "Causa raiz identificada: connection pool esgotado")
-    timeline.add(t0 + timedelta(min=8), "Runbook de recuperação iniciado")
-    timeline.add(t0 + timedelta(min=12),"Rolling restart do auth-service concluído")
-    timeline.add(t0 + timedelta(min=15),"Serviços normalizados, error_rate < 1%")
-    timeline.add(t0 + timedelta(min=18),"Incidente resolvido")
+    timeline.add(t0 + timedelta(minutes=2), "War room criada, time acionado")
+    timeline.add(t0 + timedelta(minutes=5), "Causa raiz identificada: connection pool esgotado")
+    timeline.add(t0 + timedelta(minutes=8), "Runbook de recuperação iniciado")
+    timeline.add(t0 + timedelta(minutes=12),"Rolling restart do auth-service concluído")
+    timeline.add(t0 + timedelta(minutes=15),"Serviços normalizados, error_rate < 1%")
+    timeline.add(t0 + timedelta(minutes=18),"Incidente resolvido")
 
     return IncidentReport(
         incident_id="INC-2024-0603-001",
