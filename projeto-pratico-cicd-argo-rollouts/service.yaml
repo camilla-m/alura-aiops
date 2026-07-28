@@ -1,0 +1,29 @@
+# Services stable e canary. O Argo Rollouts injeta automaticamente o selector
+# de pod-template-hash em cada um, roteando o tráfego conforme o setWeight.
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-stable
+  labels:
+    app: checkout
+spec:
+  selector:
+    app: checkout
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkout-canary
+  labels:
+    app: checkout
+spec:
+  selector:
+    app: checkout
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000

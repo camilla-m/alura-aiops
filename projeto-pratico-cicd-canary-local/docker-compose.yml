@@ -1,0 +1,111 @@
+version: '3.8'
+
+# ---------------------------------------------------------------------------
+# Canary local sem Kubernetes.
+#
+# Sobem DUAS versões do mesmo checkout-service (stable v1 e canary v2), o
+# Prometheus raspando ambas, o Grafana comparando lado a lado e o flagd
+# servindo as feature flags (padrão OpenFeature, equivalente open source ao
+# LaunchDarkly). O canary_controller.py (host) faz o papel do Argo Rollouts:
+# lê as métricas reais e decide PROMOVER ou fazer ROLLBACK.
+#
+# Deixe o canário DOENTE (default) para ver o rollback automático:
+#     docker compose up --build
+# Deixe o canário SAUDÁVEL para ver a promoção automática:
+#     CANARY_ERROR_RATE=0 CANARY_EXTRA_LATENCY_MS=0 docker compose up --build
+# ---------------------------------------------------------------------------
+
+services:
+  # Versão estável (v1) — a "produção" saudável, baseline da comparação.
+  checkout-stable:
+    build: ./app
+    environment:
+      - APP_VERSION=v1
+      - ERROR_RATE=0.0
+      - EXTRA_LATENCY_MS=0
+      - FLAGD_OFREP_URL=http://flagd:8016
+    ports:
+      - "8001:8000"
+    depends_on:
+      - flagd
+
+  # Versão canário (v2) — o build novo. Por padrão vem DOENTE, para o lab
+  # demonstrar o rollback. Sobrescreva com CANARY_ERROR_RATE=0 para vê-lo
+  # saudável e ser promovido.
+  checkout-canary:
+    build: ./app
+    environment:
+      - APP_VERSION=v2
+      - ERROR_RATE=${CANARY_ERROR_RATE:-0.35}
+      - EXTRA_LATENCY_MS=${CANARY_EXTRA_LATENCY_MS:-400}
+      - FLAGD_OFREP_URL=http://flagd:8016
+    ports:
+      - "8002:8000"
+    depends_on:
+      - flagd
+
+  # flagd: engine open source de feature flags (OpenFeature). Serve as flags
+  # de flags/flags.flagd.json via gRPC (8013) e via OFREP/HTTP (8016).
+  flagd:
+    image: ghcr.io/open-feature/flagd:latest
+    command:
+      - "start"
+      - "--uri"
+      - "file:/etc/flagd/flags.flagd.json"
+    volumes:
+      - ./flags/flags.flagd.json:/etc/flagd/flags.flagd.json:ro
+    ports:
+      - "8013:8013"  # gRPC (evaluation + sync)
+      - "8016:8016"  # OFREP (REST) — usado pelo checkout-service
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - checkout-stable
+      - checkout-canary
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - prometheus
+
+  # Gerador de tráfego opcional (perfil "loadgen"). Se preferir, rode o
+  # loadgen.py direto no host — veja o README. Para subir junto:
+  #     docker compose --profile loadgen up --build
+  loadgen:
+    build: ./app
+    profiles: ["loadgen"]
+    entrypoint: ["python", "-c"]
+    command:
+      - |
+        import time, urllib.request
+        targets = ["http://checkout-stable:8000/checkout", "http://checkout-canary:8000/checkout"]
+        print("[loadgen] enviando trafego para stable e canary...", flush=True)
+        while True:
+            for url in targets:
+                try:
+                    urllib.request.urlopen(urllib.request.Request(url, method="POST"), timeout=3)
+                except Exception:
+                    pass
+            time.sleep(0.1)
+    depends_on:
+      - checkout-stable
+      - checkout-canary

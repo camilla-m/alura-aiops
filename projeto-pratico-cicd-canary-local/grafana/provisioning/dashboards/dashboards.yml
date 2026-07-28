@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'Canary Dashboards'
+    orgId: 1
+    folder: 'CI/CD Inteligente'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

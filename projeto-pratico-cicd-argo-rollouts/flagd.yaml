@@ -1,0 +1,81 @@
+# flagd no cluster: mesmas flags do lab de canary local, servidas via OFREP (8016) e gRPC
+# (8013). As flags ficam num ConfigMap. Para alterar em runtime, edite o
+# ConfigMap e o flagd recarrega (ou reinicie o pod).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagd-flags
+data:
+  flags.flagd.json: |
+    {
+      "$schema": "https://flagd.dev/schema/v0/flags.json",
+      "flags": {
+        "new-checkout-flow": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off"
+        },
+        "checkout-canary-rollout": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off",
+          "targeting": { "fractional": [ ["on", 10], ["off", 90] ] }
+        },
+        "kill-switch": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off"
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd
+  labels:
+    app: flagd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flagd
+  template:
+    metadata:
+      labels:
+        app: flagd
+    spec:
+      containers:
+        - name: flagd
+          image: ghcr.io/open-feature/flagd:latest
+          args:
+            - "start"
+            - "--uri"
+            - "file:/etc/flagd/flags.flagd.json"
+          ports:
+            - containerPort: 8013  # gRPC
+            - containerPort: 8016  # OFREP
+          volumeMounts:
+            - name: flags
+              mountPath: /etc/flagd
+      volumes:
+        - name: flags
+          configMap:
+            name: flagd-flags
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd
+  labels:
+    app: flagd
+spec:
+  selector:
+    app: flagd
+  ports:
+    - name: grpc
+      port: 8013
+      targetPort: 8013
+    - name: ofrep
+      port: 8016
+      targetPort: 8016

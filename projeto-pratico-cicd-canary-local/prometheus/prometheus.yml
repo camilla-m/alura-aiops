@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # Um único job raspando as duas versões. As próprias métricas já carregam o
+  # label `version` (v1/v2), então o canary_controller e o Grafana filtram por
+  # versão sem precisar de relabeling. O label extra `deployment` fica de
+  # brinde para quem quiser agrupar por alvo.
+  - job_name: 'checkout-service'
+    static_configs:
+      - targets: ['checkout-stable:8000']
+        labels:
+          deployment: 'stable'
+      - targets: ['checkout-canary:8000']
+        labels:
+          deployment: 'canary'

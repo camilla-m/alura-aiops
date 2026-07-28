@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: mapi-api
+  namespace: production
+spec:
+  replicas: 5
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: mapi-api
+  template:
+    metadata:
+      labels:
+        app: mapi-api
+    spec:
+      containers:
+        - name: mapi-api
+          image: registry.storyblok.com/mapi-api:v2.4.2
+          ports:
+            - containerPort: 8080
+  strategy:
+    canary:
+      canaryService: mapi-api-canary
+      stableService: mapi-api-stable
+      trafficRouting:
+        nginx:
+          stableIngress: mapi-api-ingress
+      steps:
+        - setWeight: 20
+        - pause: {duration: 2m}
+        - setWeight: 50
+        - analysis:
+            templates:
+              - templateName: canary-success-rate
+            args:
+              - name: service-name
+                value: mapi-api
+        - setWeight: 100
