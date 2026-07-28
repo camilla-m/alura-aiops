@@ -1,0 +1,47 @@
+# AnalysisTemplate — os "gates" automáticos do canary.
+#
+# É EXATAMENTE a lógica que o canary_controller.py reproduz no PATH A, só que
+# aqui rodando nativa no Argo Rollouts. Em cada análise o Argo mede 4 vezes
+# (interval 20s) e REPROVA se 2 medições violarem a condição (failureLimit).
+# Reprovou -> o Rollout aborta e volta 100% do tráfego para o stable.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: checkout-canary-analysis
+spec:
+  args:
+    # Endereço do Prometheus no cluster. Ajuste ao seu namespace/serviço.
+    - name: prometheus-url
+      value: "http://prometheus:9090"
+    # Versão que está sendo promovida (o canary). No lab: v2.
+    - name: canary-version
+      value: "v2"
+  metrics:
+    # Gate 1 — success rate do canary >= 95%.
+    - name: success-rate
+      interval: 20s
+      count: 4
+      failureLimit: 2
+      successCondition: "result >= 0.95"
+      provider:
+        prometheus:
+          address: "{{args.prometheus-url}}"
+          query: |
+            sum(rate(http_requests_total{version="{{args.canary-version}}",status=~"2.."}[1m]))
+            /
+            sum(rate(http_requests_total{version="{{args.canary-version}}"}[1m]))
+
+    # Gate 2 — latência p95 do canary <= 0.5s.
+    - name: p95-latency
+      interval: 20s
+      count: 4
+      failureLimit: 2
+      successCondition: "result <= 0.5"
+      provider:
+        prometheus:
+          address: "{{args.prometheus-url}}"
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(http_request_duration_seconds_bucket{version="{{args.canary-version}}"}[1m])) by (le)
+            )

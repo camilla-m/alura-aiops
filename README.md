@@ -38,16 +38,34 @@ curso3-aula-04-investigacao-logs-ia/        # Investigação operacional e anál
 curso3-aula-05-operacoes-inteligentes/      # Operações orientadas por observabilidade inteligente
 ```
 
-### Projeto Prático Final: Laboratório com Ferramentas Reais
+### Curso 4 — CI/CD Inteligente
 
-Para coroar o aprendizado, o repositório inclui um projeto prático que coloca os alunos de frente com uma infraestrutura real:
+Aplicar IA e ML ao ciclo de entrega: análise preditiva de risco de deploy, progressive delivery com canary analysis automatizada, test intelligence, pipelines auto-otimizáveis e as ferramentas reais do mercado (Argo Rollouts, LaunchDarkly, Harness, Buildkite).
 
 ```
-projeto-pratico-aiops/              # Laboratório end-to-end
+curso4-aula-01-analise-risco-predeploy/     # Análise de risco pré-deploy com ML
+curso4-aula-02-progressive-delivery/        # Progressive delivery + canary analysis (Argo Rollouts)
+curso4-aula-03-test-intelligence/           # Test selection, flaky detection e test impact
+curso4-aula-04-pipelines-auto-otimizaveis/  # Gargalos, paralelismo, cache e agentes de otimização
+curso4-aula-05-ferramentas-praticas/        # Harness, Argo Rollouts, LaunchDarkly e Buildkite
+```
+
+### Projetos Práticos: Laboratórios com Ferramentas Reais
+
+Para coroar o aprendizado, o repositório inclui projetos práticos que colocam os alunos de frente com uma infraestrutura real:
+
+```
+projeto-pratico-aiops/              # Lab AIOps end-to-end (Curso 2/3)
 ├── docker-compose.yml              # Prometheus, Grafana, Jaeger, FastAPI
 ├── app/                            # API com OpenTelemetry e endpoint de caos
 ├── grafana/                        # Dashboards RED Method pré-configurados
 └── ai_troubleshooter.py            # Script AIOps consumindo a API do Prometheus
+
+projeto-pratico-cicd-inteligente/   # Lab de CI/CD Inteligente (Curso 4)
+├── docker-compose.yml              # stable(v1) + canary(v2) + Prometheus + Grafana + flagd
+├── canary_controller.py            # Canary analysis local (lógica do Argo Rollouts sobre Prometheus)
+├── flags/                          # Feature flags flagd/OpenFeature (estilo LaunchDarkly)
+└── k8s/                            # Argo Rollouts real em kind/minikube (PATH B)
 ```
 
 ---
@@ -66,7 +84,13 @@ projeto-pratico-aiops/              # Laboratório end-to-end
 | | Aula 3 | Alertas inteligentes e redução de ruído |
 | | Aula 4 | Investigação operacional e análise inteligente de logs |
 | | Aula 5 | Operações orientadas por observabilidade inteligente |
-| **Lab** | Projeto | Laboratório Prático End-to-End com Docker Compose |
+| **Curso 4** | Aula 1 | Análise de risco pré-deploy |
+| | Aula 2 | Progressive delivery assistido |
+| | Aula 3 | Test intelligence |
+| | Aula 4 | Pipelines auto-otimizáveis |
+| | Aula 5 | Ferramentas na prática (Harness, Argo, LaunchDarkly, Buildkite) |
+| **Lab** | Projeto | Laboratório AIOps End-to-End com Docker Compose |
+| | Projeto | Laboratório CI/CD Inteligente: canary + Argo Rollouts + feature flags |
 
 ---
 
