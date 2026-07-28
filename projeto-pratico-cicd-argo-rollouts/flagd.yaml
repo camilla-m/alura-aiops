@@ -1,4 +1,4 @@
-# flagd no cluster: mesmas flags do PATH A, servidas via OFREP (8016) e gRPC
+# flagd no cluster: mesmas flags do lab de canary local, servidas via OFREP (8016) e gRPC
 # (8013). As flags ficam num ConfigMap. Para alterar em runtime, edite o
 # ConfigMap e o flagd recarrega (ou reinicie o pod).
 apiVersion: v1

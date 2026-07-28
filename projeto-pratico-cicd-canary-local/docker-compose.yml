@@ -1,7 +1,7 @@
 version: '3.8'
 
 # ---------------------------------------------------------------------------
-# PATH A — Canary local sem Kubernetes.
+# Canary local sem Kubernetes.
 #
 # Sobem DUAS versões do mesmo checkout-service (stable v1 e canary v2), o
 # Prometheus raspando ambas, o Grafana comparando lado a lado e o flagd

@@ -157,7 +157,7 @@ def analyse(prom, args, weight):
 # --------------------------------------------------------------------------- #
 def run_rollout(prom, args) -> int:
     print("=" * 68)
-    print("🚦 CANARY CONTROLLER — Argo Rollouts (modo local, PATH A)")
+    print("🚦 CANARY CONTROLLER — Argo Rollouts (modo local, sem Kubernetes)")
     print("=" * 68)
     log(f"stable = {args.stable_version} | canary = {args.canary_version}")
     log(

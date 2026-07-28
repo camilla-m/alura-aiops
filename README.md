@@ -61,11 +61,15 @@ projeto-pratico-aiops/              # Lab AIOps end-to-end (Curso 2/3)
 ├── grafana/                        # Dashboards RED Method pré-configurados
 └── ai_troubleshooter.py            # Script AIOps consumindo a API do Prometheus
 
-projeto-pratico-cicd-inteligente/   # Lab de CI/CD Inteligente (Curso 4)
+projeto-pratico-cicd-canary-local/  # Lab CI/CD 1 (Curso 4): canary local sem Kubernetes
 ├── docker-compose.yml              # stable(v1) + canary(v2) + Prometheus + Grafana + flagd
 ├── canary_controller.py            # Canary analysis local (lógica do Argo Rollouts sobre Prometheus)
-├── flags/                          # Feature flags flagd/OpenFeature (estilo LaunchDarkly)
-└── k8s/                            # Argo Rollouts real em kind/minikube (PATH B)
+└── flags/                          # Feature flags flagd/OpenFeature (estilo LaunchDarkly)
+
+projeto-pratico-cicd-argo-rollouts/ # Lab CI/CD 2 (Curso 4): Argo Rollouts real em kind/minikube
+├── rollout.yaml                    # Rollout canary (setWeight/pause/analysis)
+├── analysis-template.yaml          # AnalysisTemplate: success-rate + p95 via Prometheus
+└── app/                            # imagem checkout-service para carregar no cluster
 ```
 
 ---
@@ -90,7 +94,8 @@ projeto-pratico-cicd-inteligente/   # Lab de CI/CD Inteligente (Curso 4)
 | | Aula 4 | Pipelines auto-otimizáveis |
 | | Aula 5 | Ferramentas na prática (Harness, Argo, LaunchDarkly, Buildkite) |
 | **Lab** | Projeto | Laboratório AIOps End-to-End com Docker Compose |
-| | Projeto | Laboratório CI/CD Inteligente: canary + Argo Rollouts + feature flags |
+| | Projeto | CI/CD 1: canary local (docker-compose + flagd + controller) |
+| | Projeto | CI/CD 2: Argo Rollouts real em Kubernetes (kind/minikube) |
 
 ---
 

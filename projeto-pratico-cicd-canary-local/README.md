@@ -1,12 +1,12 @@
-# 🚦 Projeto Prático — CI/CD Inteligente (Curso 4)
+# 🚦 Projeto Prático 1 — Canary Local (Curso 4)
 
 > **Carreira:** AIOps
 > **Curso:** Curso 4 — CI/CD Inteligente (Deploys progressivos, canary e feature flags)
 > **Instrutora:** Camilla Martins
 
-Laboratório **hands-on** que amarra o Curso 4 usando as **ferramentas reais**
-citadas no curso: **Argo Rollouts**, **LaunchDarkly/flagd (OpenFeature)**,
-**Prometheus** e **Grafana**. Tudo roda **localmente**.
+Laboratório **hands-on** que reproduz um **canary deployment** com promoção e
+rollback automáticos **sem precisar de Kubernetes**. Tudo roda **localmente** com
+`docker compose` e um controlador em Python que faz o papel do Argo Rollouts.
 
 A ideia central que o lab prova na prática:
 
@@ -14,6 +14,10 @@ A ideia central que o lab prova na prática:
 > coisa; expor o comportamento novo aos usuários (release) é outra. Deploys
 > progressivos (canary) + feature flags te dão controle e reversibilidade sobre
 > as duas coisas, com decisão automática baseada em **métricas reais**.
+
+Este é o **primeiro dos dois labs** de entrega progressiva do curso. Aqui a
+lógica dos gates é didática e roda no host; no [lab seguinte](../projeto-pratico-cicd-argo-rollouts/)
+você roda a mesma coisa com o **Argo Rollouts de verdade** em Kubernetes.
 
 ---
 
@@ -26,12 +30,10 @@ A ideia central que o lab prova na prática:
 - Usar **feature flags** para separar deploy de release e ter um **kill-switch**
   que corta um recurso em milissegundos.
 
-Dois caminhos, escolha um (ou faça os dois):
-
-| Caminho | O que é | Precisa de Kubernetes? |
-|---|---|---|
-| **PATH A** | `canary_controller.py` reproduz a lógica do Argo Rollouts em cima do `docker-compose`. | ❌ Não |
-| **PATH B** | Argo Rollouts **real** em cluster `kind`/`minikube`. | ✅ Sim (local) |
+O ponto-chave: o `canary_controller.py` **não é um mock**. Ele consulta as
+métricas **reais** do canary no Prometheus (success rate e latência p95) e decide
+PROMOVER ou fazer ROLLBACK exatamente como uma `AnalysisTemplate` do Argo
+Rollouts faria.
 
 ---
 
@@ -75,20 +77,21 @@ Dois caminhos, escolha um (ou faça os dois):
               └──────────────────────────────┘
 ```
 
-No **PATH B**, o `canary_controller.py` é substituído pelo controlador real do
-**Argo Rollouts** rodando no cluster, e a lógica dos gates vira uma
-`AnalysisTemplate` (ver `k8s/`).
+O `canary_controller.py` é a peça que, num cluster de verdade, seria o
+controlador do Argo Rollouts. Ele lê o Prometheus, roda os gates e toma a
+decisão. No [Projeto Prático 2](../projeto-pratico-cicd-argo-rollouts/) essa
+peça vira o controlador real e a lógica dos gates vira uma `AnalysisTemplate`.
 
 ---
 
 ## 🛠️ Pré-requisitos
 
-- Python 3.10+
-- Docker & Docker Compose
-- (Somente PATH B) `kind` ou `minikube`, `kubectl` e o plugin `kubectl argo rollouts`
+- **Docker** e **Docker Compose** (o `docker compose` moderno, plugin v2)
+- **Python 3.10+** no host (para rodar `loadgen.py` e `canary_controller.py`)
 
 Os scripts `canary_controller.py` e `loadgen.py` usam **apenas a biblioteca
-padrão** do Python — nenhum `pip install` no host.
+padrão** do Python — nenhum `pip install` no host. As dependências do app
+(FastAPI etc.) ficam dentro do container.
 
 ---
 
@@ -105,7 +108,7 @@ padrão** do Python — nenhum `pip install` no host.
 
 ---
 
-## 🅰️ PATH A — Canary local (sem Kubernetes)
+## 🧪 Passo a passo
 
 ### 1. Suba o ambiente (canary DOENTE por padrão)
 
@@ -114,16 +117,19 @@ docker compose up --build
 ```
 
 Isso sobe stable (v1 saudável), canary (v2 com `ERROR_RATE=0.35` e
-`EXTRA_LATENCY_MS=400`), Prometheus, Grafana e flagd.
+`EXTRA_LATENCY_MS=400`), Prometheus, Grafana e flagd. O canário nasce **doente**
+de propósito, para o primeiro cenário demonstrar o rollback.
 
 ### 2. Gere tráfego (outro terminal)
+
+Sem tráfego não há métricas para analisar. Rode o gerador:
 
 ```bash
 python3 loadgen.py
 # ou dentro do compose:  docker compose --profile loadgen up --build
 ```
 
-### 3. Rode o controlador de canary (outro terminal)
+### 3. Rode o controlador de canary (outro terminal) e veja o ROLLBACK
 
 ```bash
 python3 canary_controller.py
@@ -134,7 +140,7 @@ Ele lê as métricas **reais** do canary no Prometheus e roda os gates
 e você vê o **ROLLBACK automático**:
 
 ```
-🚦 CANARY CONTROLLER — Argo Rollouts (modo local, PATH A)
+🚦 CANARY CONTROLLER — Argo Rollouts (modo local, sem Kubernetes)
 [..] ➡️  setWeight 10%  — encaminhando 10% do tráfego para o canary
 [..] ⏸️  pause + analysis ...
 [..]    medição 1/4: 🔴 canary sr=64.8% p95=0.612s ... -> success 64.8% < 95%; p95 0.612s > teto 0.500s
@@ -146,7 +152,7 @@ RESULTADO: 🔴 ROLLBACK — o canary v2 foi descartado, produção segue no v1.
 
 ### 4. Agora veja a PROMOÇÃO automática
 
-Suba com o canary saudável e rode o controlador de novo:
+Suba com o canary **saudável** e rode o controlador de novo:
 
 ```bash
 # pare o compose (Ctrl+C) e suba com o canary saudável:
@@ -163,38 +169,14 @@ Todos os gates passam → `RESULTADO: 🟢 PROMOÇÃO — o canary v2 é agora a
 - **Flip do `ERROR_RATE`:** derrube um canary saudável no meio do rollout
   reiniciando o container canary com `CANARY_ERROR_RATE=0.5` e rode o
   controlador de novo — ele reprova e faz rollback.
+- **Ajuste os gates:** o controlador aceita flags como
+  `--min-success 0.98`, `--max-p95 0.3` ou `--steps 20,50,100`. Veja
+  `python3 canary_controller.py --help`.
 - **Grafana:** abra http://localhost:3000 → dashboard *"CI/CD Inteligente -
   Canary"* e compare success rate e p95 de v1 vs v2 lado a lado.
 - **Feature flags:** veja `flags/README.md`. Ligue `new-checkout-flow`, mude o
   percentual de `checkout-canary-rollout` ou acione o `kill-switch` editando
   `flags/flags.flagd.json` (o flagd recarrega sozinho).
-
----
-
-## 🅱️ PATH B — Argo Rollouts real (kind/minikube)
-
-Passo a passo completo em **[`k8s/README.md`](k8s/README.md)**. Resumo:
-
-```bash
-kind create cluster --name cicd-lab
-docker build -t checkout-service:latest ./app
-kind load docker-image checkout-service:latest --name cicd-lab
-
-kubectl create namespace argo-rollouts
-kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-
-kubectl apply -f k8s/prometheus.yaml
-kubectl apply -f k8s/flagd.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/analysis-template.yaml
-kubectl apply -f k8s/rollout.yaml
-
-kubectl argo rollouts get rollout checkout --watch
-```
-
-Depois patch o Rollout para o `v2` doente e assista ao **rollback automático**;
-patch para `v2` saudável e assista à **promoção automática**. Comandos exatos em
-`k8s/README.md`.
 
 ---
 
@@ -215,14 +197,19 @@ Endpoints: `GET /health`, `GET /metrics`, `GET /flags` (debug) e
 e `http_request_duration_seconds{version}` — exatamente os sinais que o Argo
 Rollouts (e o `canary_controller.py`) usam para decidir.
 
+**Deploy ≠ Release na prática:** o build v2 pode estar em produção (deploy)
+enquanto o comportamento novo fica atrás da flag `new-checkout-flow`. Só quando
+a flag liga (release) é que o `ERROR_RATE`/`EXTRA_LATENCY_MS` do v2 "vazam" para
+os usuários — e o `kill-switch` corta tudo em milissegundos, sem redeploy.
+
 ---
 
 ## 🚫 O que este lab NÃO faz
 
-- **Não roteia tráfego real por peso no PATH A.** O `loadgen` bate nas duas
-  versões continuamente; o `setWeight` é a *decisão de gate* baseada em métricas
-  reais do canary, não um proxy (Envoy/Istio) fatiando pacotes. No **PATH B** o
-  Argo Rollouts faz o roteamento de verdade via replica count / traffic routing.
+- **Não roteia tráfego real por peso.** O `loadgen` bate nas duas versões
+  continuamente; o `setWeight` é a *decisão de gate* baseada em métricas reais do
+  canary, não um proxy (Envoy/Istio) fatiando pacotes. O roteamento de verdade
+  por peso é o que você vê no [Projeto Prático 2](../projeto-pratico-cicd-argo-rollouts/).
 - **Não substitui um pipeline de CI.** Não há build/test/registry aqui; o foco é
   a etapa de **entrega progressiva** (CD) e a análise automática.
 - **Não é setup de produção.** O Prometheus/Grafana/flagd estão sem
@@ -240,10 +227,10 @@ Rollouts (e o `canary_controller.py`) usam para decidir.
 ## 📁 Estrutura
 
 ```
-projeto-pratico-cicd-inteligente/
+projeto-pratico-cicd-canary-local/
 ├── README.md                       # este arquivo
-├── docker-compose.yml              # PATH A: stable, canary, prometheus, grafana, flagd, loadgen
-├── canary_controller.py            # PATH A: o "Argo Rollouts" local (gates + promote/rollback)
+├── docker-compose.yml              # stable, canary, prometheus, grafana, flagd, loadgen
+├── canary_controller.py            # o "Argo Rollouts" local (gates + promote/rollback)
 ├── loadgen.py                      # gerador de tráfego (host)
 ├── app/
 │   ├── main.py                     # checkout-service (FastAPI + prometheus-client + OFREP)
@@ -254,17 +241,16 @@ projeto-pratico-cicd-inteligente/
 ├── grafana/
 │   ├── dashboards/canary_dashboard.json
 │   └── provisioning/               # datasource + provider de dashboards
-├── flags/
-│   ├── flags.flagd.json            # flags do flagd/OpenFeature
-│   └── README.md                   # mapeamento LaunchDarkly ↔ flagd
-└── k8s/                            # PATH B: Argo Rollouts real
-    ├── rollout.yaml
-    ├── analysis-template.yaml
-    ├── service.yaml
-    ├── prometheus.yaml
-    ├── flagd.yaml
-    └── README.md
+└── flags/
+    ├── flags.flagd.json            # flags do flagd/OpenFeature
+    └── README.md                   # mapeamento LaunchDarkly ↔ flagd
 ```
+
+---
+
+➡️ **Próximo lab:** [`../projeto-pratico-cicd-argo-rollouts/`](../projeto-pratico-cicd-argo-rollouts/) —
+a mesma promoção/rollback automático, agora com o **Argo Rollouts real** em um
+cluster Kubernetes (`kind`/`minikube`).
 
 ---
 

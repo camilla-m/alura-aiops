@@ -1,6 +1,7 @@
 # AnalysisTemplate — os "gates" automáticos do canary.
 #
-# É EXATAMENTE a lógica que o canary_controller.py reproduz no PATH A, só que
+# É EXATAMENTE a lógica que o canary_controller.py reproduz no lab de canary
+# local (docker compose), só que
 # aqui rodando nativa no Argo Rollouts. Em cada análise o Argo mede 4 vezes
 # (interval 20s) e REPROVA se 2 medições violarem a condição (failureLimit).
 # Reprovou -> o Rollout aborta e volta 100% do tráfego para o stable.

@@ -1,7 +1,7 @@
-# PATH B — Argo Rollouts REAL em cluster local (kind/minikube).
+# Argo Rollouts REAL em cluster local (kind/minikube).
 #
 # Rollout do checkout-service com estratégia canary + análise automática.
-# Fluxo do lab (ver k8s/README.md):
+# Fluxo do lab (ver README.md):
 #   1) aplique este manifesto COMO ESTÁ (APP_VERSION=v1, saudável) -> vira stable.
 #   2) troque a env para o canary v2 (buggy) e reaplique -> dispara o canary,
 #      a AnalysisTemplate reprova e o Argo faz ROLLBACK sozinho.
