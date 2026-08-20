@@ -56,6 +56,13 @@ data:
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: replace
             target_label: app
+          # O Argo Rollouts carimba cada pod com `rollouts-pod-template-hash`.
+          # É ESSE label (e não `version`) que separa stable de canary, porque
+          # as duas revisões podem ter o mesmo APP_VERSION. A AnalysisTemplate
+          # filtra por ele para medir SÓ os pods do canário.
+          - source_labels: [__meta_kubernetes_pod_label_rollouts_pod_template_hash]
+            action: replace
+            target_label: rollouts_pod_template_hash
 ---
 apiVersion: apps/v1
 kind: Deployment

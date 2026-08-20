@@ -11,38 +11,53 @@ metadata:
   name: checkout-canary-analysis
 spec:
   args:
-    # Endereço do Prometheus no cluster. Ajuste ao seu namespace/serviço.
+    # Endereço do Prometheus. Use o FQDN: quem executa a query é o CONTROLADOR
+    # do Argo Rollouts, que roda no namespace `argo-rollouts` — um `prometheus`
+    # "pelado" resolveria no namespace dele e daria `no such host`.
     - name: prometheus-url
-      value: "http://prometheus:9090"
-    # Versão que está sendo promovida (o canary). No lab: v2.
-    - name: canary-version
-      value: "v2"
+      value: "http://prometheus.default.svc.cluster.local:9090"
+    # Hash do pod-template do CANÁRIO. Declarado SEM valor: quem o preenche é o
+    # `rollout.yaml`, com `valueFrom.podTemplateHashValue: Latest` (esse campo
+    # só existe nos args do Rollout, não nos da AnalysisTemplate).
+    # Filtrar por ele (e não por `version`) garante que a análise meça só os
+    # pods da nova revisão, mesmo quando stable e canary têm o mesmo APP_VERSION.
+    - name: canary-hash
   metrics:
     # Gate 1 — success rate do canary >= 95%.
     - name: success-rate
-      interval: 20s
+      # Ritmo pensado para AULA: 4 medições de 10s (~40s por gate). Um canário
+      # ruim é abortado em ~45s; um saudável promove em ~2,5min. Em produção
+      # você usaria janelas bem maiores (interval 1m-5m).
+      interval: 10s
       count: 4
       failureLimit: 2
-      successCondition: "result >= 0.95"
+      # O provider Prometheus devolve um VETOR ([]float64). Comparar o vetor
+      # direto com um número dá `mismatched types []float64 and float64`, então
+      # indexamos result[0] — e o `len(result) > 0` protege a janela inicial,
+      # em que ainda não há amostra e o vetor volta vazio.
+      successCondition: "len(result) > 0 && result[0] >= 0.95"
       provider:
         prometheus:
           address: "{{args.prometheus-url}}"
           query: |
-            sum(rate(http_requests_total{version="{{args.canary-version}}",status=~"2.."}[1m]))
+            sum(rate(http_requests_total{rollouts_pod_template_hash="{{args.canary-hash}}",status=~"2.."}[1m]))
             /
-            sum(rate(http_requests_total{version="{{args.canary-version}}"}[1m]))
+            sum(rate(http_requests_total{rollouts_pod_template_hash="{{args.canary-hash}}"}[1m]))
 
     # Gate 2 — latência p95 do canary <= 0.5s.
     - name: p95-latency
-      interval: 20s
+      # Ritmo pensado para AULA: 4 medições de 10s (~40s por gate). Um canário
+      # ruim é abortado em ~45s; um saudável promove em ~2,5min. Em produção
+      # você usaria janelas bem maiores (interval 1m-5m).
+      interval: 10s
       count: 4
       failureLimit: 2
-      successCondition: "result <= 0.5"
+      successCondition: "len(result) > 0 && result[0] <= 0.5"
       provider:
         prometheus:
           address: "{{args.prometheus-url}}"
           query: |
             histogram_quantile(
               0.95,
-              sum(rate(http_request_duration_seconds_bucket{version="{{args.canary-version}}"}[1m])) by (le)
+              sum(rate(http_request_duration_seconds_bucket{rollouts_pod_template_hash="{{args.canary-hash}}"}[1m])) by (le)
             )

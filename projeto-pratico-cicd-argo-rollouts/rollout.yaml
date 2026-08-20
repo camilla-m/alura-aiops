@@ -61,20 +61,37 @@ spec:
       canaryService: checkout-canary
       stableService: checkout-stable
       # setWeight 10 -> 25 -> 50 -> 100, com pausa e análise em cada gate.
+      #
+      # `canary-hash` entrega à AnalysisTemplate o pod-template-hash da revisão
+      # nova. É por ele que as queries PromQL isolam os pods do canário — usar
+      # o label `version` não serviria, porque stable e canary podem estar no
+      # mesmo APP_VERSION e as métricas se misturariam.
       steps:
         - setWeight: 10
-        - pause: { duration: 30s }
+        - pause: { duration: 15s }
         - analysis:
             templates:
               - templateName: checkout-canary-analysis
+            args:
+              - name: canary-hash
+                valueFrom:
+                  podTemplateHashValue: Latest
         - setWeight: 25
-        - pause: { duration: 30s }
+        - pause: { duration: 15s }
         - analysis:
             templates:
               - templateName: checkout-canary-analysis
+            args:
+              - name: canary-hash
+                valueFrom:
+                  podTemplateHashValue: Latest
         - setWeight: 50
-        - pause: { duration: 30s }
+        - pause: { duration: 15s }
         - analysis:
             templates:
               - templateName: checkout-canary-analysis
+            args:
+              - name: canary-hash
+                valueFrom:
+                  podTemplateHashValue: Latest
         - setWeight: 100

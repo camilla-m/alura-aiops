@@ -89,16 +89,28 @@ verdade conforme o `setWeight`.
 
 ### 1. Suba o cluster e construa a imagem do app
 
+**Se estiver usando `minikube`:**
+```bash
+# constrói a imagem localmente
+docker build -t checkout-service:latest ./app
+
+# envia a imagem para dentro do minikube
+minikube image load checkout-service:latest
+```
+
+*(Ou alternativa via docker-env: rode `eval $(minikube docker-env)` e depois `docker build -t checkout-service:latest ./app`)*
+
+**Se estiver usando `kind`:**
+
+#TODO MINIKUBE
+
 ```bash
 # cria o cluster local
 kind create cluster --name cicd-lab
 
-# constrói a imagem do checkout-service (contexto ./app, na raiz deste projeto)
+# constrói e disponibiliza a imagem
 docker build -t checkout-service:latest ./app
-
-# disponibiliza a imagem dentro do kind (sem registry)
 kind load docker-image checkout-service:latest --name cicd-lab
-# minikube: use `eval $(minikube docker-env)` ANTES do build, ou `minikube image load`
 ```
 
 ### 2. Instale o controlador do Argo Rollouts
@@ -141,6 +153,21 @@ kubectl argo rollouts get rollout checkout --watch
 A imagem é a mesma; o que muda é o **comportamento** via env. Patch o Rollout
 para o build `v2` doente (alta taxa de erro + latência):
 
+> **Pré-requisito:** a flag `new-checkout-flow` precisa estar **`on`** (é o
+> default do `flagd.yaml`). No `app/main.py` o `ERROR_RATE` e o
+> `EXTRA_LATENCY_MS` só valem dentro do fluxo novo — é o próprio ponto de
+> *deploy ≠ release*. Com a flag `off`, o canário "ruim" responde 200 rápido, os
+> gates passam e ele é promovido. Confira com
+> `kubectl exec deploy/flagd -- ...` ou pelo endpoint de debug do app:
+> `kubectl run -q --rm -it f --image=curlimages/curl --restart=Never -- curl -s http://checkout-canary/flags`
+
+```bash
+./demo-canary-ruim.sh
+```
+
+O script sobe o `loadgen` se ainda não existir, aplica o patch e já abre o
+`--watch`. É equivalente a:
+
 ```bash
 kubectl patch rollout checkout --type=json -p='[
   {"op":"replace","path":"/spec/template/spec/containers/0/env/0/value","value":"v2"},
@@ -150,11 +177,26 @@ kubectl patch rollout checkout --type=json -p='[
 kubectl argo rollouts get rollout checkout --watch
 ```
 
-Você vai ver: `setWeight 10%` → `Paused` → `Analysis Running` →
+Em **~45s** você vai ver: `setWeight 10%` → `Paused` → `Analysis Running` →
 `Analysis Failed` → **`Degraded` / rollback automático** para o v1. O Argo aborta
 sozinho porque a `AnalysisTemplate` reprovou (success rate < 95% e/ou p95 > 0.5s).
 
+Para ver os números que reprovaram o canário:
+
+```bash
+kubectl get analysisrun --sort-by=.metadata.creationTimestamp \
+  -o jsonpath='{range .items[-1:]}{range .status.metricResults[*]}{.name}{" -> "}{.phase}{": "}{range .measurements[*]}{.value}{" "}{end}{"\n"}{end}{end}'
+# success-rate -> Failed: [0.666] [0.741] [0.630]
+# p95-latency  -> Failed: [0.732] [0.734] [0.735]
+```
+
 ### 5. Agora um canary SAUDÁVEL e assista à promoção automática
+
+```bash
+./demo-canary-bom.sh
+```
+
+Equivalente a:
 
 ```bash
 kubectl patch rollout checkout --type=json -p='[
@@ -165,7 +207,11 @@ kubectl argo rollouts get rollout checkout --watch
 ```
 
 Todos os gates passam → o Rollout avança 10% → 25% → 50% → 100% e **promove**
-sozinho.
+sozinho em **~2,5min**.
+
+> Os dois scripts carimbam uma annotation `demo-run` no pod-template, então dá
+> para rodá-los quantas vezes quiser, em qualquer ordem, que sempre nasce uma
+> revisão nova (sem eles, reaplicar o mesmo `env` seria um no-op para o Argo).
 
 ### Comandos úteis
 
@@ -198,18 +244,47 @@ o `failureLimit`, a análise **reprova** e o Rollout aborta:
 
 | Gate | Query (PromQL) | successCondition |
 |---|---|---|
-| **success-rate** | `sum(rate(http_requests_total{version="v2",status=~"2.."}[1m])) / sum(rate(http_requests_total{version="v2"}[1m]))` | `result >= 0.95` |
-| **p95-latency** | `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{version="v2"}[1m])) by (le))` | `result <= 0.5` |
+| **success-rate** | `sum(rate(http_requests_total{rollouts_pod_template_hash="…",status=~"2.."}[1m])) / sum(rate(http_requests_total{rollouts_pod_template_hash="…"}[1m]))` | `len(result) > 0 && result[0] >= 0.95` |
+| **p95-latency** | `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{rollouts_pod_template_hash="…"}[1m])) by (le))` | `len(result) > 0 && result[0] <= 0.5` |
 
-Ambos usam `interval: 20s`, `count: 4` e `failureLimit: 2` — ou seja, medem 4
-vezes e reprovam se 2 medições violarem a condição. O `rollout.yaml` referencia
+Ambos usam `interval: 10s`, `count: 4` e `failureLimit: 2` — ou seja, medem 4
+vezes e reprovam se 3 medições violarem a condição. O `rollout.yaml` referencia
 essa template em cada passo (`setWeight` → `pause` → `analysis`), de modo que
 todo avanço de peso passa pelo gate antes de continuar.
+
+> Essas janelas são curtas **de propósito**, para caber numa aula: ~45s para
+> reprovar um canário ruim e ~2,5min para promover um saudável. Em produção
+> você usaria `interval` de minutos, com janelas de `rate()` proporcionais.
 
 O app (`app/main.py`) expõe `http_requests_total{version,status}` e
 `http_request_duration_seconds{version}`, e o `prometheus.yaml` descobre os pods
 do `checkout` pelas annotations `prometheus.io/scrape` — fechando o ciclo
 métricas → análise → decisão.
+
+### Três detalhes que fazem a análise funcionar (ou quebrar)
+
+1. **Filtre pelo `rollouts-pod-template-hash`, não pelo `version`.** O Argo
+   carimba esse label em todo pod e a template o recebe pronto via
+   `valueFrom.podTemplateHashValue: Latest`. Se você filtrasse por
+   `version="v2"`, no dia em que o stable também fosse `v2` a query misturaria
+   stable + canary e o gate aprovaria um canário ruim. O `prometheus.yaml` tem
+   um `relabel_config` só para expor esse label nas séries.
+2. **O `successCondition` opera sobre um vetor.** O provider Prometheus devolve
+   `[]float64`; comparar direto (`result >= 0.95`) resulta em
+   `invalid operation: >= (mismatched types []float64 and float64)` e a métrica
+   sai como **Error**, não como Failed. Daí o `result[0]` — com o
+   `len(result) > 0` protegendo a janela inicial, em que ainda não há amostra.
+3. **Use o FQDN do Prometheus.** Quem executa a query é o controlador do Argo,
+   que roda no namespace `argo-rollouts`. Um `http://prometheus:9090` resolve no
+   namespace *dele* e falha com `dial tcp: lookup prometheus: no such host`. Por
+   isso `http://prometheus.default.svc.cluster.local:9090`.
+
+> Diagnóstico rápido quando um gate vira `⚠ Error` (em vez de `✘ Failed`):
+> ```bash
+> kubectl get analysisrun -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{" "}{.status.message}{"\n"}{end}'
+> ```
+> `Error` = a análise não conseguiu medir (DNS, query, tipo). `Failed` = ela
+> mediu e reprovou — que é o comportamento esperado no passo 4.
 
 ---
 
@@ -240,6 +315,8 @@ métricas → análise → decisão.
 ```
 projeto-pratico-cicd-argo-rollouts/
 ├── README.md                       # este arquivo
+├── demo-canary-ruim.sh             # dispara o canário ruim  -> rollback em ~45s
+├── demo-canary-bom.sh              # dispara o canário bom   -> promoção em ~2,5min
 ├── rollout.yaml                    # Rollout canary (setWeight 10→25→50→100 + análise)
 ├── analysis-template.yaml          # gates: success rate >= 95% e p95 <= 0.5s
 ├── service.yaml                    # services checkout-stable e checkout-canary

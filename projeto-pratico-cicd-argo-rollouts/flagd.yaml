@@ -1,6 +1,11 @@
 # flagd no cluster: mesmas flags do lab de canary local, servidas via OFREP (8016) e gRPC
 # (8013). As flags ficam num ConfigMap. Para alterar em runtime, edite o
 # ConfigMap e o flagd recarrega (ou reinicie o pod).
+#
+# ATENÇÃO: `new-checkout-flow` precisa estar "on" para os botões de caos do
+# build (ERROR_RATE / EXTRA_LATENCY_MS) valerem — no app/main.py o erro e a
+# latência extra só "vazam" dentro do fluxo novo. Com a flag "off" o canário
+# ruim se comportaria como saudável e o gate passaria indevidamente.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -13,12 +18,12 @@ data:
         "new-checkout-flow": {
           "state": "ENABLED",
           "variants": { "on": true, "off": false },
-          "defaultVariant": "off"
+          "defaultVariant": "on"
         },
         "checkout-canary-rollout": {
           "state": "ENABLED",
           "variants": { "on": true, "off": false },
-          "defaultVariant": "off",
+          "defaultVariant": "on",
           "targeting": { "fractional": [ ["on", 10], ["off", 90] ] }
         },
         "kill-switch": {
