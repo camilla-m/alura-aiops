@@ -7,7 +7,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "off"
+      "defaultVariant": "on"
     },
 
     "checkout-canary-rollout": {
@@ -16,7 +16,7 @@
         "on": true,
         "off": false
       },
-      "defaultVariant": "off",
+      "defaultVariant": "on",
       "targeting": {
         "fractional": [
           ["on", 10],
